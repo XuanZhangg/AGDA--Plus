@@ -6,13 +6,13 @@ from ALG.Utils import *
 import numpy as np
 
 
-DATA_LIMIT = 10000
-PLOT_LIMIT = 10000
+DATA_LIMIT = 6000
+PLOT_LIMIT = 6000
 stdx = 0 # 0.1 for stochastic Q, 0 for determintisc Q
 stdy = 0
 b = 1 
 mu_y = 1
-for kappa in [5,10]:
+for kappa in [10]:
     data_name = f'Q_stdx_{stdx}_stdy_{stdy}' + '_muy_' + str(mu_y) + '_kappa_' + str(kappa) + f'_b_{b}'
     data_path = f'./result_data/{data_name}'
     for plot_part in ['z','lr_x']:# ['x','y','z','loss','acc','lr_x','lr_y']:
@@ -21,7 +21,7 @@ for kappa in [5,10]:
         # G['GS-GDA-B,N=5'] = data_path +'/primal_line_search_N_5_AGDA'
         # G['GS-GDA-B,N=1'] = data_path +'/primal_line_search_N_1_AGDA'
         G['LS-GS-GDA'] = data_path +'/LS-GS-GDA'
-        #G['LS-GS-GDA-S'] = data_path + '/LS-GS-GDA-S'
+        G['LS-GS-GDA-S'] = data_path + '/LS-GS-GDA-S'
         #G['LS-GS-GDA-R'] = data_path +'/LS-GS-GDA-R'
         # G['LS-GS-GDA-S-R'] = data_path + '/LS-GS-GDA-S-R'
         G['Smooth-AGDA'] = data_path + '/Smooth-AGDA'
@@ -81,7 +81,7 @@ for kappa in [5,10]:
                 # norm_sqaure_sto_grad_z = normlize_data(norm_sqaure_sto_grad_z)
                 # norm_sqaure_full_grad_x = normlize_data(norm_sqaure_full_grad_x)
                 # norm_sqaure_full_grad_y = normlize_data(norm_sqaure_full_grad_y)
-                # norm_sqaure_full_grad_z = normlize_data(norm_sqaure_full_grad_z)
+                norm_sqaure_full_grad_z = normlize_data(norm_sqaure_full_grad_z)
 
                 contraction_times = record['contraction_times']
                 #b = record['config'][-1]['b']
@@ -163,6 +163,8 @@ for kappa in [5,10]:
             plt.yscale('log')
         elif plot_part == 'z':
             plt.yscale('log')
+            if kappa == 10:
+                plt.ylim(1e-7,1.1)
         elif plot_part == 'acc':
             plt.ylim(0, 0.6)
         elif plot_part == 'loss':
@@ -171,6 +173,8 @@ for kappa in [5,10]:
             plt.yscale('log')
         elif plot_part == 'lr_y':
             plt.yscale('log')
+        
+
 
         # plt.xscale('log')
         if is_log:

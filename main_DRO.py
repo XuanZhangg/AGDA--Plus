@@ -34,8 +34,8 @@ print(f'data:{data_name},number_of_data:{train_set.data.shape[0]},dim_features:{
 
 for mu_y in [0.01]:
     model_type = 'DRO' # Q: projection_y=False,DRO,FairCNN: projection_y=True
-    sim_time=1
-    max_iter=2000
+    sim_time=3
+    max_iter=3000
     freq=50# print result by freq
     b = 6000
     sgd_b = b
@@ -60,6 +60,7 @@ for mu_y in [0.01]:
     result = my_optimizer.optimizer(lr_x=1, lr_y=1, method='TiAda', b=sgd_b)
     result = my_optimizer.optimizer(lr_x=1/3/L/(1+kappa)**2,lr_y=1/L,method='AGDA',b=sgd_b)
     result = my_optimizer.optimizer(lr_x=1/16/(kappa+1)**2/L,lr_y=1/L,method='GDA',b=sgd_b)
+    result = my_optimizer.line_search_one_step(gamma1 = gamma1, gamma2 = gamma2, isMaxSolver=True, isRestart=False,b=b, verbose=False)
     # result = my_optimizer.line_search_one_step(gamma1=gamma1, gamma2=gamma2, isChangeOpt=False, isRestart=True)
     # result = my_optimizer.line_search_one_step(gamma1 = gamma1, gamma2 = gamma2, isChangeOpt=True, isRestart=False)
     # L = ?

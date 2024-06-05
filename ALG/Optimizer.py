@@ -131,7 +131,6 @@ class ALG():
             
         torch.save(StartModelSet, 'initial.pt')
 
-
     def load_initial_model(self, sim_time):
         start = torch.load('initial.pt')
         self.start_model,self.y_opt,self.model_copy,self.model_bk = start[sim_time]
@@ -207,71 +206,6 @@ class ALG():
         self.record['config'][s] = {}
 
     def line_search_one_step(self, gamma1:float=0.9,gamma2=0.9, gamma3=1e-3, b:int=None, N:int=1, method:str='LS-GS-GDA', min_b:int=1, force_b:int=-1, kernal='AGDA',\
-                            isMaxSolver = True, isRestart = True, mu_coeff = 1,\
-                            max_epoch=None,start=None,max_iter=None,is_tell_gamma=False):
-        self.reset_all()
-        if is_tell_gamma:
-            method += f'-g1-{int(100*gamma1)}-g2-{int(100*gamma2)}-g3-{int(1000*gamma3)}'
-        Model = call_model(self.model_type)
-        if not b:
-            b = self.b
-        if not max_epoch:
-            max_epoch = self.max_epoch
-        if not max_iter:
-            max_iter = self.max_iter
-
-        if isMaxSolver:
-            method += '-S'
-
-        if isRestart:
-            method += '-R'
-
-        # Generate full block
-        N = 1
-
-        flattened_x = torch.cat([param.flatten() for name,param in self.start_model.named_parameters() if name!='dual_y'])
-        indices = np.arange(flattened_x.shape[0])
-        full_block = copy.deepcopy(indices)
-
-        for s in range(self.sim_time):
-            self.load_initial_model(s)
-            self.reset_contraction(s)
-            self.record['contraction_times'][s] += 1
-            self.record['config'][s] = {'b':b,'N':N,'K':self.max_iter,'std_x':self.start_model.std_x, 'std_y':self.start_model.std_y}
-            self.record['config'][s]['method'] = method
-            self.record['config'][s]['pjx'] = self.projection_x
-            self.record['config'][s]['pjy'] = self.projection_y
-
-            #load the start model
-            start = self.start_model
-
-            self.model_curr = Model(data_size=self.data_size,mu_y=self.mu_y, kappa=self.kappa, device=self.device,injected_noise_x=self.std_x, injected_noise_y=self.std_y).to(self.device)
-            self.model_curr.load_state_dict(copy.deepcopy(start.state_dict()))
-
-            if self.model_type == 'Q':
-                self.model_curr.b = b
-                self.data_number_in_each_epoch = b
-
-            #initialize the data loader and full batch
-            data_loader_dumb = self.batchselect()
-            #data_loader_dumb = torch.randperm(self.total_number_data).to(self.device)
-            batch_start = 0
-
-            L = self.mu_y/gamma2
-            upper_delta = 10
-            deltak = min(self.Dy, torch.norm(self.y_opt - self.model_curr.dual_y) ** 2 + upper_delta)
-            Deltak = deltak
-
-            foo_i = 1
-            self.new_stage = True
-            reset_flag = True
-
-            while True:
-                if isMaxSolver and reset_flag:
-                    y = 1
-            pass
-
-    def line_search_one_step(self, gamma1:float=0.9,gamma2=0.9, gamma3=1e-3, b:int=None, N:int=1, method:str='LS-GS-GDA', min_b:int=1, force_b:int=-1, kernal='AGDA',\
                              isMaxSolver = True, isRestart = True, mu_coeff = 1,\
                              max_epoch=None,start=None,max_iter=None,is_tell_gamma=False,verbose=False):
         self.reset_all()
@@ -331,7 +265,7 @@ class ALG():
             reset_flag = True
             R_k,Lambda_k = 0,0
             bar_D_y = self.Dy
-            eta = 0.001
+            eta = 1
 
             while True:
                 #break the if beyond max iter 
@@ -389,7 +323,6 @@ class ALG():
                             f, x, y, z, gx, gy = {}, {}, {}, {}, {}, {}
                             self.model_curr.zero_grad()
                             computeGrad(self.model_curr, data_by_batch, target_by_batch, batch_index, b)
-
                             #Deltak = max(Deltak, torch.tensor(upper_delta)/ foo_i ** 1.1)
                         elif not isMaxSolver:
                             y_temp = self.model_curr.dual_y.data.clone()
@@ -407,7 +340,6 @@ class ALG():
                             f, x, y, z, gx, gy = {}, {}, {}, {}, {}, {}
                             self.model_bk.zero_grad()
                             computeGrad(self.model_curr, data_by_batch, target_by_batch, batch_index, b)
-                        reset_flag = True
 
                         while l<=L:
                             self.model_bk.load_state_dict(self.model_curr.state_dict())
@@ -562,7 +494,7 @@ class ALG():
                             else:
                                 l = l/gamma2
                         L = L/gamma1
-
+                        reset_flag = True
                 backtrack()
                     
                 # update the complexity and iterations
@@ -591,7 +523,6 @@ class ALG():
                     pickle.dump(self.record, fp)
 
         return self.record
-
 
     def line_search_one_step_archive(self, gamma1:float=0.9,gamma2=0.9, gamma3=1e-3, b:int=None, N:int=1, method:str='LS-GS-GDA', min_b:int=1, force_b:int=-1, kernal='AGDA',\
                              isMaxSolver = True, isRestart = True, mu_coeff = 1,\
@@ -905,8 +836,6 @@ class ALG():
 
         return self.record
 
-
-
     def maximizer_solver(self,start,lr_y=None,b=None,tol=None,max_iter = 1e5):
         from torch import optim
         import time
@@ -1107,7 +1036,7 @@ class ALG():
                 if method == 'TiAda':
                     self.save_iterates_info(s, batch_index, lr_x_TiAda, lr_y_TiAda, full_block)
                 else:
-                    self.save_iterates_info(s,batch_index,lr_x,lr_y,full_block)
+                    self.save_iterates_info(s, batch_index, lr_x, lr_y, full_block)
 
                 # update the model by method
                 def SGDA(lr_x,lr_y):

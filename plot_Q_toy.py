@@ -18,7 +18,7 @@ for kappa in [int(L/mu_y)]:
     data_path = f'./result_data/{data_name}'
     for plot_part in ['z','lr_x','lr_y','ratio']:# ['x','y','z','loss','acc','lr_x','lr_y']:
         G = {}
-        #G['LS-GS-GDA'] = data_path +'/LS-GS-GDA'
+        G['LS-GS-GDA'] = data_path +'/LS-GS-GDA'
         G['LS-GS-GDA-S'] = data_path +'/LS-GS-GDA-S'
         G['GS-GDA'] = data_path +'/AGDA'
         G['TiAda'] = data_path +'/TiAda'

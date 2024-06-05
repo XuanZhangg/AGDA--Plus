@@ -133,7 +133,7 @@ def shadowplot(x: list, y: list, alg_name: str, center=0, alpha=0.5, label_input
     temp = []
     colors = {'GS-GDA-B,N=1': 'b',
               'GS-GDA-B,N=5': 'g','GS-GDA-B,N=10': 'y','GS-GDA-B,N=2': 'y','primal_line_search_100': 'saddlebrown',\
-              'LS-GS-GDA':'r', 'LS-GS-GDA-S':'r', 'LS-GS-GDA-R':'lightgreen', 'LS-GS-GDA-S-R':'r', \
+              'LS-GS-GDA':'r', 'LS-GS-GDA-S':'g', 'LS-GS-GDA-R':'lightgreen', 'LS-GS-GDA-S-R':'r', \
               'J-GDA': 'saddlebrown', 'GS-GDA': 'b', 'TiAda': 'c', \
               'Smooth-AGDA':'m',
               }
