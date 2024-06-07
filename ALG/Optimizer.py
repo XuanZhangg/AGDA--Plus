@@ -107,6 +107,7 @@ class ALG():
         self.model_bk = Model(self.data_size, mu_y, device=device, injected_noise_x=self.std_x, injected_noise_y=self.std_y).to(device) # initial model
 
     def generate_initial_model(self):
+        return 
         StartModelSet = {}
         for i in range(self.sim_time):
             #initilize start model
@@ -134,6 +135,14 @@ class ALG():
     def load_initial_model(self, sim_time):
         start = torch.load('initial.pt')
         self.start_model,self.y_opt,self.model_copy,self.model_bk = start[sim_time]
+        self.start_model.device = self.device
+        self.model_bk.device = self.device
+        self.model_bk.copy = self.device
+        self.start_model.to(self.device)
+        self.y_opt.to(self.device)
+        self.model_bk.to(self.device)
+        self.model_copy.to(self.device)
+        
 
     def reset_all(self,T=1):
         #the following saver will be reset for a new run with sim_times simulations
