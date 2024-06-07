@@ -442,7 +442,7 @@ class ALG():
                                 else:
                                     eps = 1e-2
                             else:
-                                eps = 1e-6 #1e-12, -1e-12, larger means large variance but faster
+                                eps = 1e-2 #1e-12, -1e-12, larger means large variance but faster
                             
 
                             condition1 = (c1<=eps and c2<=eps and c3<=eps and c4<=eps)
@@ -839,7 +839,68 @@ class ALG():
 
         return self.record
 
-    def line_search_fix_eps(self, gamma:float=0.9, N:int=1, T=3, method:str=None, min_b:int=1, force_b:int=-1, kernal='AGDA', randompick=False,eps = 10):
+    def pickbest(self, T):
+        #the following saver will be reset for a new contraction at the s-th simulation
+        idx = -1
+        record_copy = {}
+        for key in self.record:
+            record_copy[key] = [None for _ in range(self.sim_time)]
+        
+        assert len(self.record['sample_complexity']) == T*self.sim_time
+        for s in range(self.sim_time):
+            min_idx = s*T
+            min_grad_norm = np.inf
+            for _ in range(T):
+                idx += 1
+                cur_grad_norm = self.record['norm_square_sto_grad_x'][idx][-1] + self.record['norm_square_sto_grad_y'][idx][-1]
+
+                if cur_grad_norm<min_grad_norm:
+                    min_idx = idx
+                    min_grad_norm = cur_grad_norm
+            
+            for key in self.record:
+                if key == 'config':
+                    record_copy[key] = self.record[key]
+                else:
+                    record_copy[key][s] = copy.deepcopy(self.record[key][min_idx])
+        
+        return record_copy
+    
+    # TBD-2024-04-03-XUAN
+    def pickbestParal(self, T):
+        #the following saver will be reset for a new contraction at the s-th simulation
+        record_copy = {}
+        for key in self.record:
+            record_copy[key] = [None for _ in range(self.sim_time)]
+        idx = -1
+
+        for s in range(self.sim_time):
+            min_idx = s
+            min_grad_norm = np.inf
+            total_sample_complexity = 0
+            total_oracle_complexity = 0
+
+            for _ in range(T):
+                idx += 1
+                cur_grad_norm = min([self.record['norm_square_sto_grad_x'][idx][i] + self.record['norm_square_sto_grad_y'][idx][i] for i in range(len(self.record['norm_square_sto_grad_x'][idx]))])
+                total_sample_complexity += self.record['total_sample_complexity'][idx]
+                total_oracle_complexity += self.record['total_oracle_complexity'][idx]
+
+                if cur_grad_norm<min_grad_norm:
+                    min_idx = idx
+                    min_grad_norm = cur_grad_norm
+            
+            for key in self.record:
+                if key == 'config':
+                    record_copy[key] = self.record[key]
+                else:
+                    record_copy[key][s] = copy.deepcopy(self.record[key][min_idx])
+            record_copy['total_sample_complexity'][s] = total_sample_complexity
+            record_copy['total_oracle_complexity'][s] = total_oracle_complexity
+            
+        return record_copy
+
+    def line_search(self, gamma:float=0.9, N:int=1, T=3, method:str=None, min_b:int=1, force_b:int=-1, kernal='AGDA', randompick=False):
         self.reset_all(T=T)
 
         if not method:
@@ -874,6 +935,7 @@ class ALG():
                 lr_y = 1/L
                 rho = ((1+12/N)**(1/2)-1)/24
                 lr_x = N*rho*self.mu_y**2*lr_y**3
+                eps = 10
                 full_batch = torch.arange(self.total_number_data).to(self.device)
                 Lxy0 = self.start_model.loss(self.data, full_batch, self.targets).item()
                 bx = int(128/eps**2*self.start_model.std_x**2 + 1)
@@ -1057,348 +1119,6 @@ class ALG():
                             torch.isnan(torch.norm(self.model_curr.dual_y)) \
                             or(self.projection_y and torch.abs(torch.sum(self.model_curr.dual_y.data)-1)>1e-2) or \
                             check_temp>1e32:
-                            find = False
-                            break
-
-                    # start line search after all iterations
-                    # print('------------------------contraction times', self.record['contraction_times'][s], 'is finished------------------------')
-                    # print('sigma =',lr_y, 'tau =',lr_x)
-                
-                                    #assert contraction_times<=100
-                        
-                if self.record['contraction_times'][s] >=100:
-                    sim_find = False
-                    break
-
-                if not find:
-                    print('contraction', self.record['contraction_times'][s], 'fails, the gap is nan')
-                    pass
-                else:
-                    min_norm_square_sto_grad = min([self.record['norm_square_sto_grad_x'][idx_tmp][-1] + self.record['norm_square_sto_grad_y'][idx_tmp][-1] for idx_tmp in range(sim*T, (sim+1)*T)])
-                    y_opt = self.maximizer_solver(start=self.model_curr, lr_y=self.maxsolver_step) #y_opt is the tensor
-                    self.model_curr.dual_y.data = y_opt.clone()
-                    Phik = self.model_curr.loss(self.data, full_batch, self.targets).item()
-                    # eq (31) in the paper
-                    lcondition = min_norm_square_sto_grad
-                    rcondition = 4*N/lr_x*(max(0,Phi0 - Phik) + 6*rho*self.mu_y*delta0) \
-                        + 4*len(self.record['norm_square_sto_grad_x'][s])/b*(self.model_curr.std**2
-                                                                            +(1+6*(2-lr_y*self.mu_y)/lr_y/self.mu_y/(1-lr_y*self.mu_y)*self.model_curr.std**2)
-                                                                            )
-                    rcondition = rcondition/self.max_iter
-
-
-                    if lcondition>rcondition:
-                        find = False
-                        foo = self.record['contraction_times'][s]
-                        print(f'Contraction {foo} fails, gap={lcondition-rcondition}, lcondition={lcondition}, rcondition={rcondition}, Phi0={Phi0}, Phik={Phik}\n')  
-                    else:
-                        find = True
-                        foo = self.record['contraction_times'][s]
-                        print(f'Contraction {foo} successes!!! Gap={lcondition-rcondition}, lcondition={lcondition}, rcondition={rcondition}, Phi0={Phi0}, Phik={Phik}\n')       
-
-            if not sim_find:
-                print(f'{s}th sim failed ({restart_simu_time} trys), restarting...')
-                continue
-            
-            
-            #show and save this simulation result
-            for idx_tmp in range(sim*T, (sim+1)*T):
-                if self.record['norm_square_sto_grad_x'][idx_tmp] + self.record['norm_square_sto_grad_y'][idx_tmp] == min_norm_square_sto_grad:
-                    self.show_result(idx_tmp,batch_index, sim_done=False)
-                    break
-                
-        self.record = self.pickbestParal(T)
-        if self.is_save_data:
-            if self.model_type == 'Q':
-                foo = self.start_model.name
-                if self.toymodel:
-                    foo += '_toy'
-                save_kappa = self.kappa
-            else:
-                foo = self.data_name
-                save_kappa = 1
-            import os
-            folder_path = './result_data/' + foo + '_muy_' + str(self.mu_y) + '_kappa_' + str(save_kappa) + '_b_' + str(self.b)
-            if not os.path.exists(folder_path):
-                os.makedirs(folder_path)
-            file_name =  folder_path + '/' + method 
-            with open(file_name , "wb") as fp:  
-                pickle.dump(self.record, fp)
-
-        return self.record
-
-    def pickbest(self, T):
-        #the following saver will be reset for a new contraction at the s-th simulation
-        idx = -1
-        record_copy = {}
-        for key in self.record:
-            record_copy[key] = [None for _ in range(self.sim_time)]
-        
-        assert len(self.record['sample_complexity']) == T*self.sim_time
-        for s in range(self.sim_time):
-            min_idx = s*T
-            min_grad_norm = np.inf
-            for _ in range(T):
-                idx += 1
-                cur_grad_norm = self.record['norm_square_sto_grad_x'][idx][-1] + self.record['norm_square_sto_grad_y'][idx][-1]
-
-                if cur_grad_norm<min_grad_norm:
-                    min_idx = idx
-                    min_grad_norm = cur_grad_norm
-            
-            for key in self.record:
-                if key == 'config':
-                    record_copy[key] = self.record[key]
-                else:
-                    record_copy[key][s] = copy.deepcopy(self.record[key][min_idx])
-        
-        return record_copy
-    
-    # TBD-2024-04-03-XUAN
-    def pickbestParal(self, T):
-        #the following saver will be reset for a new contraction at the s-th simulation
-        record_copy = {}
-        for key in self.record:
-            record_copy[key] = [None for _ in range(self.sim_time)]
-        idx = -1
-
-        for s in range(self.sim_time):
-            min_idx = s
-            min_grad_norm = np.inf
-            total_sample_complexity = 0
-            total_oracle_complexity = 0
-
-            for _ in range(T):
-                idx += 1
-                cur_grad_norm = min([self.record['norm_square_sto_grad_x'][idx][i] + self.record['norm_square_sto_grad_y'][idx][i] for i in range(len(self.record['norm_square_sto_grad_x'][idx]))])
-                total_sample_complexity += self.record['total_sample_complexity'][idx]
-                total_oracle_complexity += self.record['total_oracle_complexity'][idx]
-
-                if cur_grad_norm<min_grad_norm:
-                    min_idx = idx
-                    min_grad_norm = cur_grad_norm
-            
-            for key in self.record:
-                if key == 'config':
-                    record_copy[key] = self.record[key]
-                else:
-                    record_copy[key][s] = copy.deepcopy(self.record[key][min_idx])
-            record_copy['total_sample_complexity'][s] = total_sample_complexity
-            record_copy['total_oracle_complexity'][s] = total_oracle_complexity
-            
-        return record_copy
-
-    def line_search(self, gamma:float=0.9, N:int=1, T=3, method:str=None, min_b:int=1, force_b:int=-1, kernal='AGDA', randompick=False):
-        self.reset_all(T=T)
-
-        if not method:
-            method = 'primal_line_search_N_' + str(N) + '_' + kernal
-        Model = call_model(self.model_type)
-        
-        s = 0
-        restart_simu_time = 0
-
-        #update batchsize
-        if force_b>=1:
-            b = force_b
-            self.b = b
-        else:
-            #b = 64/eps**2*(self.start_model.std_x**2+(1+6*(2-lr_y*self.mu_y)/lr_y/self.mu_y/(1-lr_y*self.mu_y)*self.start_model.std_y**2)) 
-            #b = int(max(b,min_b))
-            b = min(self.b,len(self.targets))
-        max_iters = [random.randint(1, self.max_iter) for _ in range(T)]
-        max_iters = [self.max_iter for _ in range(T)]
-
-        for sim in range(self.sim_time): 
-            #initilize the line search parameters
-            find = False # whether find finite squence until max iteration
-            L = self.mu_y
-            sim_find = True # whether finding lr_x,lr_y in this simluation
-            self.load_initial_model(sim)
-            self.start_model.dual_y.data = self.y_opt.clone()
-
-            while not find:
-                #shrink the stepsize conditions and change configs accordingly
-                find = True
-                L = L/gamma
-                lr_y = 1/L
-                rho = ((1+12/N)**(1/2)-1)/24
-                lr_x = N*rho*self.mu_y**2*lr_y**3
-
-                for t in range(T):
-                    s = sim*T+t
-                    max_iter= max_iters[t]
-
-                    #load the start model
-                    self.reset_contraction(s)
-                    self.record['contraction_times'][s] += 1
-                    self.model_curr = Model(data_size=self.data_size,mu_y=self.mu_y, kappa=self.kappa, device=self.device,injected_noise_x=self.std_x, injected_noise_y=self.std_y).to(self.device)
-                    self.model_curr.load_state_dict(copy.deepcopy(self.start_model.state_dict()))
-
-                    #initilize delta0
-                    y0_opt = self.y_opt
-                    delta0 = torch.norm(self.model_curr.dual_y-y0_opt)**2 # in fact, delta0 = 0, we set 1e-6 for tolerance
-
-                    #initilize Delta0
-                    full_batch = torch.arange(self.total_number_data).to(self.device)
-                    self.model_curr.dual_y.data = y0_opt.clone()
-                    Phi0 = self.model_curr.loss(self.data, full_batch, self.targets).item()
-                    print('Phi0 =',Phi0)
-                    self.model_curr.load_state_dict(copy.deepcopy(self.start_model.state_dict()))
-                    #self.max_iter is the max K
-                    eps = 64/self.max_iter/lr_y**3/self.mu_y*(max(0,Phi0 - self.start_model.F_lower)/rho/self.mu_y + 6*delta0) # compute the precison we can get according to iteration number
-                    eps = eps**(1/2)
-
-                    #initilize the block
-                    # Generate an array of indices from 0 to N-1
-                    flattened_x = torch.cat([param.flatten() for name,param in self.start_model.named_parameters() if name!='dual_y'])
-                    indices = np.arange(flattened_x.shape[0])
-                    # Shuffle the indices randomly
-                    np.random.shuffle(indices)
-                    # Split the shuffled indices into M blocks of approximately equal size
-                    blocks = np.array_split(indices, N)
-
-                    self.record['config'][s] = {'lr_x':lr_x,'lr_y':lr_y,'b':b,'eps':eps,'N':N,'K':self.max_iter,'real_K':max_iter,'L':L,'mu':self.mu_y,'std_x':self.start_model.std_x, 'std_y':self.start_model.std_y,'is_force_b':force_b>=1}
-                    self.record['config'][s]['method'] = method
-                    self.record['config'][s]['pjx'] = self.projection_x
-                    self.record['config'][s]['pjy'] = self.projection_y
-
-                    #initialize the data loader and full batch
-                    full_batch = torch.arange(self.total_number_data).to(self.device)
-                    data_loader_dumb = self.batchselect()
-                    #initialize the counters for this contraction
-                    batch_start = 0
-
-                    while True:
-                        #select data by batch index
-                        if self.model_type != 'Q' and torch.sum(self.model_curr.dual_y.flatten()[data_loader_dumb[batch_start:batch_start+b]])<=self.y_sum_eps:
-                            # skip if the batch are all invalid
-                            data_loader_dumb = self.batchselect()
-                            batch_start = 0
-                            continue
-                        elif batch_start+b <= len(data_loader_dumb):
-                            batch_index = data_loader_dumb[batch_start:batch_start+b]
-                            batch_start += b
-                        elif b >= len(data_loader_dumb):
-                            batch_index = data_loader_dumb
-                            batch_start = 0
-                        else:
-                            #drop the incomplete data if they can not form a full batch
-                            #data_loader_dumb = torch.randperm(self.total_number_data).to(self.device)
-                            data_loader_dumb = self.batchselect()
-                            batch_start = 0
-                            continue
-                        #print(torch.sum(self.model_curr.dual_y[batch_index]>0))
-
-                        data_by_batch = torch.index_select(self.data,0,index=batch_index) #unseueeze is to make [64,28,28] to [64,1,28,28]
-                        target_by_batch = torch.index_select(self.targets,0,index=batch_index)
-
-                        #compute the gradients of current model using batches
-                        self.model_curr.zero_grad()
-                        computeGrad(self.model_curr,data_by_batch,target_by_batch, batch_index,b)
-                        
-                        #select the block
-                        chosen_block = random.choice(blocks)
-
-                        #save and show the current data before updating
-                        self.save_iterates_info(s,batch_index,lr_x,lr_y,chosen_block)
-                        self.record['lr_x'][s].append(lr_x)
-                        self.record['lr_y'][s].append(lr_y)
-                        self.record['L(large)'][s].append(L)
-                        if self.is_show_result and self.record['iter'][s]%self.freq==0:
-                            self.show_result(s,batch_index, sim_done=False)
-                        
-                        #break the if beyond max iter 
-                        if self.record['iter'][s]>=max_iter:
-                            break
-
-                        #update the model by method
-                        def SGDA_B(lr_x,lr_y):
-                            flattened_x = torch.cat([param.data.clone().flatten() for name,param in self.model_curr.named_parameters() if name!='dual_y'])
-                            flattened_grad = torch.cat([param.grad.data.clone().flatten() for name,param in self.model_curr.named_parameters() if name!='dual_y'])
-                            
-                            if self.projection_x:
-                                projection_center =  flattened_x[chosen_block] - lr_x*flattened_grad[chosen_block]
-                                flattened_x[chosen_block] = torch.tensor(pj_x(projection_center.cpu().detach().numpy()),dtype=torch.float64,device=self.device)
-                            else:
-                                flattened_x[chosen_block] = flattened_x[chosen_block] - lr_x*flattened_grad[chosen_block]
-
-                            idx = 0
-                            for (name,param) in self.model_curr.named_parameters():
-                                if name != 'dual_y':
-                                    num_params = param.numel()
-                                    param.data = flattened_x[idx:idx+num_params].view(param.shape)
-                                    idx += num_params
-                                elif name == 'dual_y':
-                                    if self.projection_y:
-                                        projection_center =  param.data + lr_y*param.grad.data
-                                        param.data = torch.tensor(pj_y(projection_center.cpu().detach().numpy()),dtype=torch.float64,device=self.device)
-                                    else:
-                                        param.data = param.data + lr_y*param.grad.data
-                                            
-                        #we wont use this
-                        def AGDA_B(lr_x,lr_y):
-                            nonlocal find
-                            #update x 
-                            flattened_x = torch.cat([param.data.clone().flatten() for name,param in self.model_curr.named_parameters() if name!='dual_y'])
-                            flattened_grad = torch.cat([param.grad.data.clone().flatten() for name,param in self.model_curr.named_parameters() if name!='dual_y'])
-                            if self.projection_x:
-                                projection_center =  flattened_x[chosen_block].clone() - lr_x*flattened_grad[chosen_block].clone()
-                                flattened_x[chosen_block] = torch.tensor(pj_x(projection_center.cpu().detach().numpy()),dtype=torch.float64,device=self.device)
-                            else:
-                                flattened_x[chosen_block] = flattened_x[chosen_block].clone() - lr_x*flattened_grad[chosen_block].clone()
-                            
-
-                            idx = 0
-                            for (name,param) in self.model_curr.named_parameters():
-                                if name != 'dual_y':
-                                    num_params = param.numel()
-                                    param.data = flattened_x[idx:idx+num_params].clone().view(param.shape)
-                                    idx += num_params
-
-                            #update y
-                            computeGrad(self.model_curr,data_by_batch,target_by_batch, batch_index,b)
-                            for (name,param) in self.model_curr.named_parameters():
-                                if name == 'dual_y':
-                                    if self.projection_y:
-                                        projection_center =  param.data + lr_y*param.grad.data
-                                        param.data = torch.tensor(pj_y(projection_center.cpu().detach().numpy()),dtype=torch.float64).to(self.device)
-                                    else:
-                                        param.data = param.data + lr_y*param.grad.data
-                            #compute the gradients of current model using batches, not that the batch does not change here
-                            self.model_curr.zero_grad()
-                            
-                        
-                        #implement the method
-                        if kernal == 'AGDA':
-                            AGDA_B(lr_x,lr_y)
-                        elif kernal == "GDA":
-                            SGDA_B(lr_x,lr_y)
-
-                        # update the complexity and iterations
-                        self.record['total_sample_complexity'][s] += b
-                        self.record['total_oracle_complexity'][s] += b/N
-                        self.record['total_iter'][s] += 1
-                        self.record['total_epoch'][s] += b/self.data_number_in_each_epoch
-
-                        self.record['sample_complexity'][s] += b
-                        self.record['oracle_complexity'][s] += b/N
-                        self.record['iter'][s] += 1
-                        self.record['epoch'][s] += b/self.data_number_in_each_epoch
-                        
-                        #compute the new loss for line search checking
-                        f_new = self.model_curr.loss(self.data,full_batch, self.targets)
-                        f_new = f_new.item()
-
-                        check_temp = 0
-                        for (name,param) in self.model_curr.named_parameters():
-                                if name != 'dual_y':
-                                    check_temp += torch.norm(param.data)**2
-
-                        if not find or np.isnan(f_new)  or \
-                            torch.isnan(torch.norm(self.model_curr.dual_y)) \
-                            or(self.projection_y and torch.abs(torch.sum(self.model_curr.dual_y.data)-1)>1e-2) or \
-                            check_temp>1e128:
                             find = False
                             break
 

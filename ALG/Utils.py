@@ -129,9 +129,9 @@ def getNthPrime(x):
                 return num
         num = num + 1
 
-def shadowplot(x: list, y: list, alg_name: str, center=0, alpha=0.5, label_input=None, is_var=False,is_log=False,is_step = False,is_speical=False, plot_part=None):
+def shadowplot(x: list, y: list, alg_name: str, center=0, alpha=0.5, label_input=None, is_var=False,is_log=False,is_step = False,is_speical=False, plot_part=None, is_last=False):
     temp = []
-    colors = {'GS-GDA-B,N=1': 'b',
+    colors = {'GS-GDA-B,N=1': 'y',
               'GS-GDA-B,N=5': 'g','GS-GDA-B,N=10': 'y','GS-GDA-B,N=2': 'y','primal_line_search_100': 'saddlebrown',\
               'LS-GS-GDA':'r', 'LS-GS-GDA-S':'g', 'LS-GS-GDA-R':'lightgreen', 'LS-GS-GDA-S-R':'r', \
               'J-GDA': 'saddlebrown', 'GS-GDA': 'b', 'TiAda': 'c', \
@@ -146,8 +146,14 @@ def shadowplot(x: list, y: list, alg_name: str, center=0, alpha=0.5, label_input
         label = {'GS-GDA_lr_y':r'AGDA,$\sigma=1/L$','GS-GDA_lr_x':r'AGDA,$\tau=\Theta(\frac{1}{L\kappa^2})$','GS-GDA_ratio':r'AGDA,$\sigma/\tau =\Theta(\kappa^2)$'}
     else:
         label = {'TiAda':'TiAda','J-GDA': 'GDA', 'GS-GDA': 'AGDA','Smooth-AGDA':'Sm-AGDA',\
-            'LS-GS-GDA':'AGDA+','LS-GS-GDA-S': 'AGDA+S','LS-GS-GDA-R': 'RAGDA+','LS-GS-GDA-S-R': 'ADGA+SR',\
+            'LS-GS-GDA':'AGDA+','LS-GS-GDA-S': 'AGDA+ max','LS-GS-GDA-R': 'RAGDA+','LS-GS-GDA-S-R': 'ADGA+SR',\
+            'GS-GDA-B,N=1':'SGDA-B'
                        }
+    if is_last:
+        for i in range(len(y)):
+            for k in range(1,len(y[i])):
+                y[i][k] = min(y[i][k],y[i][k-1])
+
     for i in range(len(y)):
         y[i] = [val-center for val in y[i]]
 
@@ -178,7 +184,11 @@ def shadowplot(x: list, y: list, alg_name: str, center=0, alpha=0.5, label_input
     print(f'plotting {alg_name}')
     if is_speical and plot_part:
         label_input = alg_name + '_' +plot_part
-    plt.plot(x,mid_line, label = label[label_input], linestyle = linestyle_input[alg_name], color=colors[alg_name], linewidth=3)
+    if alg_name == 'LS-GS-GDA-S':
+        plt.plot(x,mid_line, label = label[label_input], linestyle = linestyle_input[alg_name], color=colors[alg_name], linewidth=3,marker='^', markevery=500)
+    else:
+        plt.plot(x,mid_line, label = label[label_input], linestyle = linestyle_input[alg_name], color=colors[alg_name], linewidth=3)
+
     plt.fill_between(x, lowline, highline, alpha=alpha, facecolor=colors[alg_name])
     # plt.fill_between(x, lowline, highline, facecolor='green', alpha=0.2)
     return

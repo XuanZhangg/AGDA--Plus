@@ -59,6 +59,8 @@ class ProblemQ(Problem):
         self.name = f'Q_stdx_{self.std_x}_stdy_{self.std_y}'
         assert self.d_x == self.d_y # the way to generate the model only support the same dim of x and y
         self.reset_init()
+        self.mu_y = mu_y
+        self.kappa = kappa
         
         if self.d_x == 1:
             A = torch.tensor([[20.]])
@@ -110,8 +112,9 @@ class ProblemQ(Problem):
         return torch.ones((data.shape[0],), device = data.device)
     
     def loss(self, *args):
+        L = self.kappa/self.mu_y
         loss = self.x.T @ self.A @ self.dual_y + 1 / 2 * self.x.T @ self.Q @ self.x 
-        return loss - self.mu_y / 2 * torch.norm(self.dual_y)**2
+        return loss - self.mu_y / 2 * torch.norm(self.dual_y)**2 + torch.sin(np.sqrt(L)*torch.sum(self.x))
 
     def exact_y_opt(self,input=None,idx=None,target=None):
         # this function is to avoid memory issues

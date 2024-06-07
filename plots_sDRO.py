@@ -6,7 +6,7 @@ from ALG.Utils import *
 import numpy as np
 
 DATA_LIMIT = 5000
-PLOT_LIMIT = 150
+PLOT_LIMIT = 300
 for mu_y in [0.01]:
     data_name = 'gisette' + '_muy_' + str(mu_y) + f'_kappa_{1}_b_{200}'
     data_path = f'./result_data/{data_name}'
@@ -16,11 +16,11 @@ for mu_y in [0.01]:
         # G['GS-GDA-B,N=5'] = data_path +'/primal_line_search_N_5_AGDA'
         # G['GS-GDA-B,N=1'] = data_path +'/primal_line_search_N_1_AGDA'
         G['LS-GS-GDA'] = data_path +'/LS-GS-GDA'
-        #G['LS-GS-GDA-S'] = data_path + '/LS-GS-GDA-S'
+        G['LS-GS-GDA-S'] = data_path + '/LS-GS-GDA-S'
         #G['LS-GS-GDA-R'] = data_path +'/LS-GS-GDA-R'
         # G['LS-GS-GDA-S-R'] = data_path + '/LS-GS-GDA-S-R'
-        # G['J-GDA'] = data_path +'/GDA'
-        # G['GS-GDA'] = data_path +'/AGDA'
+        G['J-GDA'] = data_path +'/GDA'
+        G['GS-GDA'] = data_path +'/AGDA'
         G['TiAda'] = data_path +'/TiAda'
 
 

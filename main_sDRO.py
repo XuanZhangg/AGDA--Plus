@@ -36,7 +36,7 @@ print(f'data:{data_name},number_of_data:{train_set.data.shape[0]},dim_features:{
 for b in [200]:
     for mu_y in [0.01]:
         model_type = 'DRO' # Q: projection_y=False,DRO,FairCNN: projection_y=True
-        sim_time=1
+        sim_time=10
         max_iter=3000
         freq=100# print result by freq
         my_optimizer = ALG(train_set=train_set,data_name=data_name,mu_y=mu_y,
@@ -65,5 +65,5 @@ for b in [200]:
         # result = my_optimizer.line_search_one_step(gamma1 = gamma1, gamma2 = gamma2, isChangeOpt=True, isRestart=False)
         result = my_optimizer.optimizer(lr_x=1/3/L/(1+kappa)**2,lr_y=1/L,method='AGDA',b=sgd_b)
         result = my_optimizer.optimizer(lr_x=1/16/(kappa+1)**2/L,lr_y=1/L,method='GDA',b=sgd_b)
-        result = my_optimizer.optimizer(lr_x=1/3/L, lr_y=1/144/L,p=2*L,beta=1/144/L*mu_y/1600, method='Smooth-AGDA', b=sgd_b)
+        #result = my_optimizer.optimizer(lr_x=1/3/L, lr_y=1/144/L,p=2*L,beta=1/144/L*mu_y/1600, method='Smooth-AGDA', b=sgd_b)
 
