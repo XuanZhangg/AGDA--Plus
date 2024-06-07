@@ -71,6 +71,7 @@ class ALG():
         self.isSameInitial = isSameInitial
         self.toymodel = toymodel
         self.optimize_batch = optimize_batch
+        self.y_sum_eps = 1e-2# for LL
         
         #initialize savers
         self.reset_all()
@@ -107,7 +108,7 @@ class ALG():
         self.model_bk = Model(self.data_size, mu_y, device=device, injected_noise_x=self.std_x, injected_noise_y=self.std_y).to(device) # initial model
 
     def generate_initial_model(self):
-        return 
+        return
         StartModelSet = {}
         for i in range(self.sim_time):
             #initilize start model
@@ -142,7 +143,6 @@ class ALG():
         self.y_opt.to(self.device)
         self.model_bk.to(self.device)
         self.model_copy.to(self.device)
-        
 
     def reset_all(self,T=1):
         #the following saver will be reset for a new run with sim_times simulations
@@ -1377,7 +1377,6 @@ class ALG():
                             #compute the gradients of current model using batches, not that the batch does not change here
                             self.model_curr.zero_grad()
                             
-                        
                         #implement the method
                         if kernal == 'AGDA':
                             AGDA_B(lr_x,lr_y)
@@ -1408,8 +1407,22 @@ class ALG():
                             torch.isnan(torch.norm(self.model_curr.dual_y)) \
                             or(self.projection_y and torch.abs(torch.sum(self.model_curr.dual_y.data)-1)>1e-2) or \
                             check_temp>1e128:
+                            # update the complexity and iterations
                             find = False
                             break
+                        
+                        if self.record['iter'][s]>=300 and self.record['acc'][s][-1]<0.6 and skiptrash:
+                            skip_iter = self.max_iter + self.record['iter'][s]
+                            self.record['total_sample_complexity'][s] += b*skip_iter
+                            self.record['total_oracle_complexity'][s] += b/N*skip_iter
+                            self.record['total_iter'][s] += 1*skip_iter
+                            self.record['total_epoch'][s] += b/self.data_number_in_each_epoch*skip_iter
+
+                            self.record['sample_complexity'][s] += b*skip_iter
+                            self.record['oracle_complexity'][s] += b/N*skip_iter
+                            self.record['iter'][s] += 1*skip_iter
+                            self.record['epoch'][s] += b/self.data_number_in_each_epoch*skip_iter
+
 
                     # start line search after all iterations
                     # print('------------------------contraction times', self.record['contraction_times'][s], 'is finished------------------------')
@@ -1420,19 +1433,6 @@ class ALG():
                 if self.record['contraction_times'][s] >=100:
                     sim_find = False
                     break
-                    
-                
-                if self.record['iter'][s]>=300 and self.record['acc'][s][-1]<0.6 and skiptrash:
-                    skip_iter = self.max_iter + self.record['iter'][s]
-                    self.record['total_sample_complexity'][s] += b*skip_iter
-                    self.record['total_oracle_complexity'][s] += b/N*skip_iter
-                    self.record['total_iter'][s] += 1*skip_iter
-                    self.record['total_epoch'][s] += b/self.data_number_in_each_epoch*skip_iter
-
-                    self.record['sample_complexity'][s] += b*skip_iter
-                    self.record['oracle_complexity'][s] += b/N*skip_iter
-                    self.record['iter'][s] += 1*skip_iter
-                    self.record['epoch'][s] += b/self.data_number_in_each_epoch*skip_iter
 
                 if not find:
                     print('contraction', self.record['contraction_times'][s], 'fails, the gap is nan')
