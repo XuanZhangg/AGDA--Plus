@@ -1422,16 +1422,17 @@ class ALG():
                     break
                     
                 
-                if (np.abs(lr_x - 0.8659814)<0.001 or np.abs(lr_x - 0.460218)<0.001) and skiptrash:
-                    self.record['total_sample_complexity'][s] += b*self.max_iter
-                    self.record['total_oracle_complexity'][s] += b/N*self.max_iter
-                    self.record['total_iter'][s] += 1*self.max_iter
-                    self.record['total_epoch'][s] += b/self.data_number_in_each_epoch*self.max_iter
+                if self.record['iter'][s]>=300 and self.record['acc'][s][-1]<0.6 and skiptrash:
+                    skip_iter = self.max_iter + self.record['iter'][s]
+                    self.record['total_sample_complexity'][s] += b*skip_iter
+                    self.record['total_oracle_complexity'][s] += b/N*skip_iter
+                    self.record['total_iter'][s] += 1*skip_iter
+                    self.record['total_epoch'][s] += b/self.data_number_in_each_epoch*skip_iter
 
-                    self.record['sample_complexity'][s] += b*self.max_iter
-                    self.record['oracle_complexity'][s] += b/N*self.max_iter
-                    self.record['iter'][s] += 1*self.max_iter
-                    self.record['epoch'][s] += b/self.data_number_in_each_epoch*self.max_iter
+                    self.record['sample_complexity'][s] += b*skip_iter
+                    self.record['oracle_complexity'][s] += b/N*skip_iter
+                    self.record['iter'][s] += 1*skip_iter
+                    self.record['epoch'][s] += b/self.data_number_in_each_epoch*skip_iter
 
                 if not find:
                     print('contraction', self.record['contraction_times'][s], 'fails, the gap is nan')

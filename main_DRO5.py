@@ -34,9 +34,9 @@ print(f'data:{data_name},number_of_data:{train_set.data.shape[0]},dim_features:{
 
 for mu_y in [0.01]:
     model_type = 'DRO' # Q: projection_y=False,DRO,FairCNN: projection_y=True
-    sim_time=3
-    max_iter=10000
-    freq=50# print result by freq
+    sim_time=1
+    max_iter=3000
+    freq=20# print result by freq
     b = 6000
     sgd_b = b
     my_optimizer = ALG(train_set=train_set,data_name=data_name,mu_y=mu_y,
