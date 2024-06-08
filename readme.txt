@@ -1,5 +1,5 @@
 Script function:
-1. run main to generate the result for experiment is the paper.
+1. run main_xx.py to generate the result for experiment is the paper.
 2. run plot to generate the figure in the paper from results.
 
 Experiment name:
