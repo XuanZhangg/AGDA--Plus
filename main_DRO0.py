@@ -57,11 +57,11 @@ for mu_y in [0.01]:
     gamma2 = 0.95
     gamma1 = gamma2**2
     result = my_optimizer.line_search_one_step(gamma1 = gamma1, gamma2 = gamma2, isMaxSolver=True, isRestart=False,b=b, verbose=False)
-    # result = my_optimizer.line_search_one_step(gamma1 = gamma1, gamma2 = gamma2, isMaxSolver=False, isRestart=False,b=b, verbose=False)
-    # result = my_optimizer.optimizer(lr_x=1, lr_y=1, method='TiAda', b=sgd_b)
-    # result = my_optimizer.optimizer(lr_x=1/3/L/(1+kappa)**2,lr_y=1/L,method='AGDA',b=sgd_b)
-    # result = my_optimizer.optimizer(lr_x=1/16/(kappa+1)**2/L,lr_y=1/L,method='GDA',b=sgd_b)
-    # result = my_optimizer.line_search_one_step(gamma1 = gamma1, gamma2 = gamma2, isMaxSolver=True, isRestart=False,b=b, verbose=False)
+    result = my_optimizer.line_search_one_step(gamma1 = gamma1, gamma2 = gamma2, isMaxSolver=False, isRestart=False,b=b, verbose=False)
+    result = my_optimizer.optimizer(lr_x=1, lr_y=1, method='TiAda', b=sgd_b)
+    result = my_optimizer.optimizer(lr_x=1/3/L/(1+kappa)**2,lr_y=1/L,method='AGDA',b=sgd_b)
+    result = my_optimizer.optimizer(lr_x=1/16/(kappa+1)**2/L,lr_y=1/L,method='GDA',b=sgd_b)
+    result = my_optimizer.line_search_one_step(gamma1 = gamma1, gamma2 = gamma2, isMaxSolver=True, isRestart=False,b=b, verbose=False)
     # L = ?
     # result = my_optimizer.optimizer(lr_x=1/3/L, lr_y=1/144/L,p=2*L,beta=1/144/L*mu_y/1600, method='Smooth-AGDA', b=sgd_b)
 

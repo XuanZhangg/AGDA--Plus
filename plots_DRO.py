@@ -5,8 +5,8 @@ import matplotlib.ticker as ticker
 from ALG.Utils import *
 import numpy as np
 
-DATA_LIMIT = 6000
-PLOT_LIMIT = 6000*6000
+DATA_LIMIT = 5500
+PLOT_LIMIT = 5500*6000
 is_last = False
 for is_last in [False,True]:
     for mu_y in [0.01]:
