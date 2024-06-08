@@ -6,8 +6,8 @@ from ALG.Utils import *
 import numpy as np
 
 
-DATA_LIMIT = 1500
-PLOT_LIMIT = 1500
+DATA_LIMIT = 4000
+PLOT_LIMIT = 4000
 for is_last in [True,False]:
     stdx = 0 # 0.1 for stochastic Q, 0 for determintisc Q
     stdy = 0
@@ -22,7 +22,7 @@ for is_last in [True,False]:
             # G['GS-GDA-B,N=5'] = data_path +'/primal_line_search_N_5_AGDA'
             G['LS-GS-GDA-S'] = data_path + '/LS-GS-GDA-S'
             G['LS-GS-GDA'] = data_path +'/LS-GS-GDA'
-            #G['GS-GDA-B,N=1'] = data_path +'/primal_line_search_N_1_AGDA'
+            G['GS-GDA-B,N=1'] = data_path +'/primal_line_search_N_1_AGDA'
             G['TiAda'] = data_path +'/TiAda'
             #G['LS-GS-GDA-R'] = data_path +'/LS-GS-GDA-R'
             # G['LS-GS-GDA-S-R'] = data_path + '/LS-GS-GDA-S-R'
@@ -166,8 +166,8 @@ for is_last in [True,False]:
                 plt.yscale('log')
             elif plot_part == 'z':
                 plt.yscale('log')
-                if kappa == 10 or kappa == 5:
-                    plt.ylim(1.1e-7,1.1)
+                # if kappa == 10:
+                    #plt.ylim(1e-7,1.1)
             elif plot_part == 'acc':
                 plt.ylim(0, 0.6)
             elif plot_part == 'loss':
@@ -191,7 +191,7 @@ for is_last in [True,False]:
                 if data_name_tmp[i] == '.':
                     data_name_tmp[i] = '_'
             if is_last:
-                name = f'./figure/{"".join(data_name_tmp)}_{plot_part}_last.pdf'
+                name = f'./figure/sin_{"".join(data_name_tmp)}_{plot_part}_last.pdf'
             else:
-                name = f'./figure/{"".join(data_name_tmp)}_{plot_part}.pdf'
+                name = f'./figure/sin_{"".join(data_name_tmp)}_{plot_part}.pdf'
             plt.savefig(name, bbox_inches='tight', facecolor='w', dpi=150)

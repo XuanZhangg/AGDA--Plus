@@ -18,11 +18,10 @@ for kappa in [int(L/mu_y)]:
     data_path = f'./result_data/{data_name}'
     for plot_part in ['z','lr_x','lr_y','ratio']:# ['x','y','z','loss','acc','lr_x','lr_y']:
         G = {}
-        G['LS-GS-GDA'] = data_path +'/LS-GS-GDA'
         G['LS-GS-GDA-S'] = data_path +'/LS-GS-GDA-S'
-        G['GS-GDA'] = data_path +'/AGDA'
+        G['LS-GS-GDA'] = data_path +'/LS-GS-GDA'
         G['TiAda'] = data_path +'/TiAda'
-
+        G['GS-GDA'] = data_path +'/AGDA'
 
         plt.figure(dpi=150)
         fig, ax = plt.subplots()
@@ -142,7 +141,7 @@ for kappa in [int(L/mu_y)]:
         elif plot_part == 'y':
             plt.ylabel(r"$\frac{||\nabla_y\mathcal{L}(x_k,y_k)||^2}{||\nabla_y\mathcal{L}(x_0,y_0)||^2}$", fontsize=15)
         elif plot_part == 'z':
-            plt.ylabel(r"$\|\nabla\mathcal{L}(x,y)||^2$", fontsize=15)
+            plt.ylabel(r"$\|\nabla\mathcal{L}(x_k,y_k)||^2$", fontsize=15)
             #plt.ylabel(r"$\frac{||\nabla\mathcal{L}(x_k,y_k)||^2}{||\nabla\mathcal{L}(x_0,y_0)||^2}$", fontsize=15)
         elif plot_part == 'acc':
             plt.ylabel(r"Train Error", fontsize=15)
